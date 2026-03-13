@@ -30,37 +30,43 @@ public class DataPreprocessor {
             "t", "re", "ve", "ll", "d", "m"
         ));
 
-        public void map(Object key, Text value, Context context)
-                throws IOException, InterruptedException {
+public void map(Object key, Text value, Context context)
+        throws IOException, InterruptedException {
 
-            String line = value.toString().trim();
+    String json = value.toString();
 
-            if (line == null || line.isEmpty()) return;
+    int start = json.indexOf("\"text\":\"");
+    if (start == -1) return;
 
-            if (line.startsWith("body") || line.startsWith("id,")) return;
+    json = json.substring(start + 8);
+    int end = json.indexOf("\"");
+    if (end == -1) return;
 
-            line = line.toLowerCase();
+    String line = json.substring(0, end).trim();
 
-            line = line.replaceAll("[^a-z0-9 ]", " ");
+    if (line.isEmpty()) return;
 
-            line = line.trim().replaceAll("\\s+", " ");
+    line = line.toLowerCase();
 
-            StringBuilder filtered = new StringBuilder();
-            for (String p : line.split(" ")) {
-                if (p.length() <= 1) continue;
-                if (palabrasFiltradas.contains(p)) continue;
-                if (p.matches("[0-9]+")) continue;
+    line = line.replaceAll("[^a-z0-9 ]", " ");
 
-                filtered.append(p).append(" ");
-            }
+    line = line.trim().replaceAll("\\s+", " ");
 
-            String result = filtered.toString().trim();
+    StringBuilder filtered = new StringBuilder();
+    for (String p : line.split(" ")) {
+        if (p.length() <= 1) continue;
+        if (palabrasFiltradas.contains(p)) continue;
+        if (p.matches(".*\\d.*")) continue;
 
-            if (result.length() < 3) return;
-
-            context.write(new Text(result), NullWritable.get());
-        }
+        filtered.append(p).append(" ");
     }
+
+    String result = filtered.toString().trim();
+
+    if (result.length() < 3) return;
+
+    context.write(new Text(result), NullWritable.get());
+}}
 
     public static Job createJob(Configuration conf, Path input, Path output)
             throws Exception {
